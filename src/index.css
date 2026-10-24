@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
+  /* Optimal touch handling for mobile Android & iOS */
+  button, a, input, select, textarea, [role="button"], label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Prevent automatic mobile input zoom */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+  /* Fokus keyboard yang jelas untuk aksesibilitas */
+  :focus-visible {
+    outline: 3px solid #C85A32;
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+}
+
+@layer components {
+  /* Tombol dasar dengan umpan balik tekan */
+  .btn-press {
+    @apply transition-all duration-150;
+  }
+  .btn-press:active {
+    transform: scale(0.98);
+  }
+
+  /* Kartu yang terangkat saat hover */
+  .card-lift {
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+  }
+  .card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -6px rgba(46, 90, 68, 0.12), 0 8px 16px -6px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Efek kilau untuk teks/latar */
+  .shimmer-bg {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2.5s linear infinite;
+  }
+
+  /* Bar progres bergaris bergerak */
+  .progress-striped {
+    background-image: linear-gradient(
+      45deg,
+      rgba(255,255,255,0.18) 25%, transparent 25%,
+      transparent 50%, rgba(255,255,255,0.18) 50%,
+      rgba(255,255,255,0.18) 75%, transparent 75%, transparent
+    );
+    background-size: 1rem 1rem;
+    animation: progress-stripes 1s linear infinite;
+  }
+
+  /* Slider rentang bergaya merek */
+  .range-brand {
+    @apply w-full appearance-none bg-transparent cursor-pointer;
+  }
+  .range-brand::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(to right, #2E5A44 var(--fill, 50%), #E6E1D6 var(--fill, 50%));
+  }
+  .range-brand::-moz-range-track {
+    height: 10px;
+    border-radius: 999px;
+    background: #E6E1D6;
+  }
+  .range-brand::-moz-range-progress {
+    height: 10px;
+    border-radius: 999px;
+    background: #2E5A44;
+  }
+  .range-brand::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 30px;
+    width: 30px;
+    margin-top: -10px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 4px solid #2E5A44;
+    box-shadow: 0 4px 12px rgba(46, 90, 68, 0.35);
+    transition: transform 0.15s ease;
+  }
+  .range-brand::-webkit-slider-thumb:active { transform: scale(1.15); }
+  .range-brand::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 4px solid #2E5A44;
+  }
+}
+
+@layer utilities {
+  /* Utilitas 3D untuk Kartu Balik Mitos vs Fakta */
+  .perspective { perspective: 1200px; }
+  .transform-style-3d { transform-style: preserve-3d; }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .rotate-y-180 { transform: rotateY(180deg); }
+
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  .text-balance { text-wrap: balance; }
+
+  /* Android & iOS Safe Area Insets */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-mb {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FDFBF7;
+}
+::-webkit-scrollbar-thumb {
+  background: #E6E1D6;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C85A32;
+}
+
+/* Elemen yang muncul saat di-scroll (dipicu oleh hook useReveal) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes progress-stripes {
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Hormati preferensi pengguna yang mengurangi gerakan */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* Print Styles for Printable Recipe Card & PMT QR Sticker Labels */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+  .no-print, header, nav, footer, .bottom-nav, button.no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-card {
+    page-break-inside: avoid;
+    border: 1px solid #333333 !important;
+    box-shadow: none !important;
+    padding: 1.5rem !important;
+    margin-bottom: 2rem !important;
+  }
+  .print-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+}

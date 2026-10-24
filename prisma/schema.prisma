@@ -1,0 +1,256 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 1. users
+model User {
+  id            String           @id @default(uuid())
+  name          String
+  email         String           @unique
+  phone         String?
+  passwordHash  String
+  role          String           // "ADMIN" | "KADER" | "PUBLIC_USER"
+  posyanduId    String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  posyandu      PosyanduPartner? @relation(fields: [posyanduId], references: [id])
+  authoredRecipes Recipe[]
+  pmtSchedules  PmtSchedule[]
+  activityLogs  ActivityLog[]
+
+  @@map("users")
+}
+
+// 2. posyandu_partners
+model PosyanduPartner {
+  id                       String         @id @default(uuid())
+  code                     String         @unique // contoh: POS-DPK-01
+  name                     String         // Posyandu Melati RW 05
+  organizationType         String         @default("POSYANDU_ANAK") // "POSYANDU_ANAK" | "PUSKESMAS" | "PKK" | "KWT" | "PAUD"
+  kelurahan                String
+  kecamatan                String
+  city                     String
+  address                  String?
+  registeredToddlersCount  Int            @default(0)
+  contactPerson            String?
+  contactWhatsapp          String?
+  isVerified               Boolean        @default(true)
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  users                    User[]
+  recipes                  Recipe[]
+  pmtSchedules             PmtSchedule[]
+  reviews                  Review[]
+  activityLogs             ActivityLog[]
+
+  @@map("posyandu_partners")
+}
+
+// 3. tubers
+model Tuber {
+  id                         String    @id @default(uuid())
+  slug                       String    @unique // "singkong" | "ubi-jalar" | "talas" | "beras-putih"
+  localName                  String
+  scientificName             String
+  isReferenceComparison      Boolean   @default(false)
+  caloriesKcal               Float     // per 100g
+  caloriesRangeText          String    // e.g. "160 - 165 kkal"
+  carbsG                     Float     // per 100g
+  carbsRangeText             String    // e.g. "35 - 40 g"
+  proteinG                   Float     // per 100g
+  proteinRangeText           String    // e.g. "1,0 - 1,36 g"
+  fiberG                     Float     // per 100g
+  fiberRangeText             String    // e.g. "2,0 - 2,5 g"
+  glycemicIndexMin           Int
+  glycemicIndexMax           Int
+  potassiumMg                Float?    // Talas: 536.1 mg
+  keyMicronutrientsJson      String    // JSON array vitamin & mineral
+  mocafDerivativeInfo        String?   // Penjelasan tepung mocaf pada singkong
+  safetyPreparationStepsJson String    // JSON array instruksi keamanan
+  toxinWarning               String    // Penjelasan HCN sianida / kalsium oksalat
+  themeColorHex              String    // e.g. #2E5A44, #C85A32, #6B4C7B
+
+  recipes                    Recipe[]
+
+  @@map("tubers")
+}
+
+// 4. protein_pairings
+model ProteinPairing {
+  id                         String             @id @default(uuid())
+  name                       String             // Ikan Kembung, Hati Ayam, Telur, dll
+  proteinType                String             // "HEWANI" | "NABATI"
+  caloriesPer100g            Float
+  proteinGPer100g            Float
+  ironMgPer100g              Float?
+  defaultServingGramsMpasi   Float              // e.g. 30g
+  householdUnitDescription   String             // 1 potong sedang (35g)
+  nutritionBenefitNote       String
+
+  recipeIngredients          RecipeIngredient[]
+
+  @@map("protein_pairings")
+}
+
+// 5. recipes
+model Recipe {
+  id                         String             @id @default(uuid())
+  recipeCode                 String             @unique // UMBI-01 s/d UMBI-06
+  slug                       String             @unique
+  title                      String
+  tuberId                    String
+  usesMocaf                  Boolean            @default(false)
+  ageCategory                String             // "MPASI_6_8" | "MPASI_9_11" | "MPASI_12_23" | "BALITA_2_5" | "PMT_KUDAPAN"
+  cookingMethod              String             // "KUKUS" | "REBUS" | "PANGGANG" | "TUMIS_MINIM_MINYAK"
+  prepTimeMinutes            Int
+  cookTimeMinutes            Int
+  basePortions               Int                @default(2)
+  caloriesPerPortion         Float
+  carbsGPerPortion           Float
+  proteinGPerPortion         Float
+  fatGPerPortion             Float
+  fiberGPerPortion           Float
+  micronutrientHighlights    String
+  textureGuideByAge          String
+  safetyWarningBanner        String
+  stepsJson                  String             // JSON array: { stepNumber, instruction, durationMinutes, isCriticalSafetyStep }
+  status                     String             @default("DRAFT") // "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "FEATURED_PMT" | "ARCHIVED"
+  authorId                   String?
+  posyanduId                 String?
+  avgLahapRating             Float              @default(5.0)
+  reviewCount                Int                @default(0)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  tuber                      Tuber              @relation(fields: [tuberId], references: [id])
+  author                     User?              @relation(fields: [authorId], references: [id])
+  posyandu                   PosyanduPartner?   @relation(fields: [posyanduId], references: [id])
+  ingredients                RecipeIngredient[]
+  pmtSchedules               PmtSchedule[]
+  reviews                    Review[]
+
+  @@map("recipes")
+}
+
+// 6. recipe_ingredients
+model RecipeIngredient {
+  id                         String          @id @default(uuid())
+  recipeId                   String
+  ingredientName             String
+  category                   String          // "KARBO_UMBI" | "PROTEIN_HEWANI" | "PROTEIN_NABATI" | "LEMAK_TAMBAHAN" | "SAYUR_BUMBU"
+  proteinPairingId           String?
+  weightGrams                Float
+  householdQty               Float
+  householdUnit              String
+  estimatedPriceIdr          Int             @default(0)
+  preparationNote            String?
+  sortOrder                  Int             @default(1)
+
+  recipe                     Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  proteinPairing             ProteinPairing? @relation(fields: [proteinPairingId], references: [id])
+
+  @@map("recipe_ingredients")
+}
+
+// 7. myth_facts
+model MythFact {
+  id                         String    @id @default(uuid())
+  category                   String    // e.g. "Gizi Karbohidrat", "Keamanan Talas", "MPASI Protein"
+  mythStatement              String
+  factExplanation            String
+  scientificReferenceNote    String
+  isActive                   Boolean   @default(true)
+  sortOrder                  Int       @default(1)
+
+  @@map("myth_facts")
+}
+
+// 8. quiz_questions
+model QuizQuestion {
+  id                         String    @id @default(uuid())
+  questionText               String
+  optionsJson                String    // JSON string array of 4 options
+  correctOptionIndex         Int       // 0 - 3
+  explanationText            String
+  isActive                   Boolean   @default(true)
+  sortOrder                  Int       @default(1)
+
+  @@map("quiz_questions")
+}
+
+// 9. pmt_schedules
+model PmtSchedule {
+  id                           String          @id @default(uuid())
+  scheduleCode                 String          @unique // PMT-202610-01
+  posyanduId                   String
+  recipeId                     String
+  createdByUserId              String
+  eventDate                    DateTime
+  counselingTopic              String
+  targetPortions               Int
+  actualPortionsDistributed   Int?
+  attendeesMothersCount        Int?
+  estimatedTotalCostIdr        Int
+  shoppingListSnapshotJson     String          // JSON snapshot data belanja
+  recipeNutritionSnapshotJson  String          // JSON snapshot nutrisi
+  status                       String          @default("PLANNED") // "PLANNED" | "SHOPPING_READY" | "DISTRIBUTED" | "EVALUATED" | "CANCELLED"
+  evaluationNotes              String?
+  cancellationReason           String?
+  createdAt                    DateTime        @default(now())
+  updatedAt                    DateTime        @updatedAt
+
+  posyandu                     PosyanduPartner @relation(fields: [posyanduId], references: [id])
+  recipe                       Recipe          @relation(fields: [recipeId], references: [id])
+  createdByUser                User            @relation(fields: [createdByUserId], references: [id])
+  reviews                      Review[]
+
+  @@map("pmt_schedules")
+}
+
+// 10. reviews
+model Review {
+  id                         String           @id @default(uuid())
+  recipeId                   String
+  pmtScheduleId              String?
+  posyanduId                 String?
+  motherName                 String
+  childAgeMonths             Int
+  lahapRating                Int              // 1 to 5
+  hasRecookedAtHome          Boolean          @default(false)
+  comment                    String
+  isApproved                 Boolean          @default(true)
+  createdAt                  DateTime         @default(now())
+
+  recipe                     Recipe           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  pmtSchedule                PmtSchedule?     @relation(fields: [pmtScheduleId], references: [id])
+  posyandu                   PosyanduPartner? @relation(fields: [posyanduId], references: [id])
+
+  @@map("reviews")
+}
+
+// 11. activity_logs
+model ActivityLog {
+  id                         String           @id @default(uuid())
+  userId                     String?
+  posyanduId                 String?
+  actionType                 String           // e.g. "CREATE_PMT_SCHEDULE", "DISTRIBUTE_PMT", "PUBLISH_RECIPE", "COMPLETE_QUIZ"
+  entityType                 String
+  entityId                   String?
+  metadataJson               String?
+  createdAt                  DateTime         @default(now())
+
+  user                       User?            @relation(fields: [userId], references: [id])
+  posyandu                   PosyanduPartner? @relation(fields: [posyanduId], references: [id])
+
+  @@map("activity_logs")
+}
