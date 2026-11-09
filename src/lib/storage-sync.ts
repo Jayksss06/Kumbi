@@ -1,31 +1,39 @@
-// LocalStorage Sync & Repository Layer for Kumbi
-// Provides offline capability, transactional integrity, and initial seeding
+// LocalStorage & Live Supabase Sync Layer for Kumbi
+// Menghubungkan aplikasi langsung ke Supabase PostgreSQL dengan fallback offline otomatis
 
 import { 
   Recipe, 
   PmtSchedule, 
   Review, 
   User, 
-  PosyanduPartner,
   RecipeStatus,
-  PmtScheduleStatus 
+  PmtScheduleStatus,
+  TuberSlug,
+  AgeCategory,
+  CookingMethod,
+  IngredientCategory
 } from '../types';
 import { 
   RECIPES_DATA, 
   PMT_SCHEDULES_DATA, 
   REVIEWS_DATA, 
-  DEMO_USERS, 
-  POSYANDU_PARTNERS_DATA 
+  DEMO_USERS 
 } from '../data/scientific-seed-data';
+import { supabase, isSupabaseConfigured } from './supabase-client';
 
 const STORAGE_KEYS = {
   RECIPES: 'umbicare_recipes_v1',
   SCHEDULES: 'umbicare_pmt_schedules_v1',
   REVIEWS: 'umbicare_reviews_v1',
   CURRENT_USER: 'umbicare_current_user_v1',
-  CHECKLIST_PREFIX: 'umbicare_checklist_',
-  LAST_CALC: 'umbicare_last_portion_calc_v1',
-  QUIZ_BEST_SCORE: 'umbicare_quiz_best_score_v1'
+  CHECKLIST_PREFIX: 'umbicare_checklist_'
+};
+
+const TUBER_ID_TO_SLUG: Record<string, TuberSlug> = {
+  'tub-01': 'singkong',
+  'tub-02': 'ubi-jalar',
+  'tub-03': 'talas',
+  'tub-ref': 'beras-putih'
 };
 
 /**
@@ -44,8 +52,100 @@ export function initializeStorage() {
     localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(REVIEWS_DATA));
   }
   if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-    // Default: Ibu Balita (Public User)
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(DEMO_USERS[3]));
+  }
+}
+
+/**
+ * Sinkronisasi data resep terbaru langsung dari Cloud Supabase PostgreSQL
+ */
+export async function syncRecipesFromSupabase(): Promise<Recipe[]> {
+  if (!isSupabaseConfigured) {
+    return getStoredRecipes();
+  }
+
+  try {
+    const [{ data: dbRecipes, error: recError }, { data: dbIngredients, error: ingError }] = await Promise.all([
+      supabase.from('recipes').select('*').order('recipeCode', { ascending: true }),
+      supabase.from('recipe_ingredients').select('*').order('sortOrder', { ascending: true })
+    ]);
+
+    if (recError || ingError || !dbRecipes || dbRecipes.length === 0) {
+      return getStoredRecipes();
+    }
+
+    // Gabungkan data resep dari Supabase dengan deskripsi fallback lokal jika ada
+    const mappedRecipes: Recipe[] = dbRecipes.map((row: any) => {
+      const localMatch = RECIPES_DATA.find(r => r.id === row.id || r.slug === row.slug);
+      const rowIngredients = (dbIngredients || [])
+        .filter((ing: any) => ing.recipeId === row.id)
+        .map((ing: any) => ({
+          id: ing.id,
+          recipeId: ing.recipeId,
+          ingredientName: ing.ingredientName,
+          category: ing.category as IngredientCategory,
+          proteinPairingId: ing.proteinPairingId || undefined,
+          weightGrams: Number(ing.weightGrams),
+          householdQty: Number(ing.householdQty),
+          householdUnit: ing.householdUnit,
+          estimatedPriceIdr: Number(ing.estimatedPriceIdr || 0),
+          preparationNote: ing.preparationNote || undefined,
+          sortOrder: Number(ing.sortOrder || 1)
+        }));
+
+      let parsedSteps = localMatch?.steps || [];
+      if (row.stepsJson) {
+        try {
+          parsedSteps = JSON.parse(row.stepsJson);
+        } catch {
+          // Gunakan fallback steps jika JSON tidak valid
+        }
+      }
+
+      const tuberSlug: TuberSlug = TUBER_ID_TO_SLUG[row.tuberId] || localMatch?.tuberSlug || 'ubi-jalar';
+
+      return {
+        id: row.id,
+        recipeCode: row.recipeCode,
+        slug: row.slug,
+        title: row.title,
+        tuberId: row.tuberId,
+        tuberSlug,
+        usesMocaf: Boolean(row.usesMocaf),
+        ageCategory: row.ageCategory as AgeCategory,
+        cookingMethod: row.cookingMethod as CookingMethod,
+        prepTimeMinutes: Number(row.prepTimeMinutes),
+        cookTimeMinutes: Number(row.cookTimeMinutes),
+        basePortions: Number(row.basePortions || 2),
+        caloriesPerPortion: Number(row.caloriesPerPortion),
+        carbsGPerPortion: Number(row.carbsGPerPortion),
+        proteinGPerPortion: Number(row.proteinGPerPortion),
+        fatGPerPortion: Number(row.fatGPerPortion),
+        fiberGPerPortion: Number(row.fiberGPerPortion),
+        micronutrientHighlights: row.micronutrientHighlights,
+        shortDescription: localMatch?.shortDescription || row.micronutrientHighlights,
+        textureGuideByAge: row.textureGuideByAge,
+        safetyWarningBanner: row.safetyWarningBanner,
+        steps: parsedSteps,
+        ingredients: rowIngredients.length > 0 ? rowIngredients : (localMatch?.ingredients || []),
+        status: row.status as RecipeStatus,
+        authorId: row.authorId || undefined,
+        posyanduId: row.posyanduId || undefined,
+        avgLahapRating: Number(row.avgLahapRating || 5),
+        reviewCount: Number(row.reviewCount || 0),
+        createdAt: row.createdAt || new Date().toISOString(),
+        updatedAt: row.updatedAt || new Date().toISOString()
+      };
+    });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(mappedRecipes));
+      window.dispatchEvent(new Event('umbicare_recipes_updated'));
+    }
+
+    return mappedRecipes;
+  } catch {
+    return getStoredRecipes();
   }
 }
 
@@ -130,7 +230,6 @@ export function archiveOrDeleteRecipe(recipeId: string): { success: boolean; mes
   const target = recipes.find(r => r.id === recipeId);
   if (!target) return { success: false, message: 'Resep tidak ditemukan.' };
 
-  // Rule 12 & Edge Case 12: Jika sudah punya riwayat PMT, alihkan ke ARCHIVED
   if (isUsedInSchedule) {
     target.status = 'ARCHIVED';
     target.updatedAt = new Date().toISOString();
@@ -138,11 +237,10 @@ export function archiveOrDeleteRecipe(recipeId: string): { success: boolean; mes
     window.dispatchEvent(new Event('umbicare_recipes_updated'));
     return {
       success: true,
-      message: 'Resep memiliki riwayat kegiatan PMT Posyandu, sehingga statusnya dialihkan menjadi "Diarsipkan (ARCHIVED)" demi menjaga integritas data laporan.'
+      message: 'Resep memiliki riwayat kegiatan PMT Posyandu, sehingga statusnya dialihkan menjadi "Diarsipkan (ARCHIVED)".'
     };
   }
 
-  // Jika belum pernah digunakan, boleh dihapus
   const filtered = recipes.filter(r => r.id !== recipeId);
   localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(filtered));
   window.dispatchEvent(new Event('umbicare_recipes_updated'));
@@ -194,11 +292,10 @@ export function updateScheduleStatus(
   const target = schedules.find(s => s.id === scheduleId);
   if (!target) return { success: false, message: 'Jadwal PMT tidak ditemukan.' };
 
-  // Validasi transisi status
   if (newStatus === 'DISTRIBUTED' && (!actualPortions || actualPortions <= 0)) {
     return {
       success: false,
-      message: 'Status belum dapat diubah menjadi "Tersalurkan (DISTRIBUTED)" karena jumlah porsi aktual yang dibagikan kepada balita belum diisi. Mohon isi jumlah porsi realisasi terlebih dahulu.'
+      message: 'Mohon isi jumlah porsi realisasi terlebih dahulu.'
     };
   }
 
@@ -239,21 +336,7 @@ export function addReview(newReview: Omit<Review, 'id' | 'createdAt' | 'isApprov
 
   reviews.unshift(review);
   localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-
-  // Atomic Update on Recipe avgLahapRating & reviewCount
-  const recipes = getStoredRecipes();
-  const targetRecipe = recipes.find(r => r.id === newReview.recipeId);
-  if (targetRecipe) {
-    const recipeReviews = reviews.filter(r => r.recipeId === targetRecipe.id && r.isApproved);
-    const totalScore = recipeReviews.reduce((acc, curr) => acc + curr.lahapRating, 0);
-    const avgScore = Number((totalScore / recipeReviews.length).toFixed(1));
-    targetRecipe.avgLahapRating = avgScore;
-    targetRecipe.reviewCount = recipeReviews.length;
-    localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(recipes));
-  }
-
   window.dispatchEvent(new Event('umbicare_reviews_updated'));
-  window.dispatchEvent(new Event('umbicare_recipes_updated'));
   return review;
 }
 

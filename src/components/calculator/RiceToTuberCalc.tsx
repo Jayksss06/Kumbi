@@ -5,16 +5,12 @@ import { getTuberImage } from '../../lib/tuber-assets';
 import { sound } from '../../lib/sound-effects';
 import { 
   Calculator, 
-  Sparkles, 
-  AlertCircle, 
-  ArrowRight, 
   ChefHat, 
   CheckCircle2, 
   Flame,
-  Info,
-  Layers,
   Scale,
-  UtensilsCrossed
+  UtensilsCrossed,
+  HeartPulse
 } from 'lucide-react';
 
 interface RiceToTuberCalcProps {
@@ -22,313 +18,230 @@ interface RiceToTuberCalcProps {
 }
 
 export const RiceToTuberCalc: React.FC<RiceToTuberCalcProps> = ({ onSelectRecipeByTuber }) => {
-  const [centong, setCentong] = useState<number>(2); // Default: 2 centong anak = 100g nasi matang
-  const [activePreset, setActivePreset] = useState<number>(2);
+  const [centong, setCentong] = useState<number>(1.5);
   const [selectedProteinAddon, setSelectedProteinAddon] = useState<string>('telur');
-  const [showFormulaModal, setShowFormulaModal] = useState<boolean>(false);
 
   const result: RiceConversionResult = calculateRiceToTuberEquivalence(centong);
+
+  const presets = [
+    { val: 0.5, label: '½ Centong', sub: 'Usia 6–8 Bln' },
+    { val: 1, label: '1 Centong', sub: 'Usia 9–11 Bln' },
+    { val: 1.5, label: '1½ Centong', sub: 'Usia 1–2 Thn' },
+    { val: 2, label: '2 Centong', sub: 'Usia 2–5 Thn' },
+    { val: 3, label: '3 Centong', sub: 'Porsi Besar' },
+  ];
 
   const handlePreset = (val: number) => {
     sound.playClick();
     setCentong(val);
-    setActivePreset(val);
   };
-
-  const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setCentong(val);
-    setActivePreset(val);
-  };
-
-  const sliderPercent = ((centong - 0.5) / (6 - 0.5)) * 100;
 
   return (
-    <div className="bg-white rounded-3xl border border-brand-border shadow-soft p-6 sm:p-9 space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       
-      {/* Title & Introduction */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-brand-green/10 text-brand-green rounded-full text-xs font-bold mb-2">
-            <Calculator className="w-3.5 h-3.5" />
-            <span>Kalkulator Cerdas Ibu Balita</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-            Penukar Porsi Nasi Anak ke Umbi Lokal
-          </h2>
-          <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-2xl leading-relaxed">
-            Berapa gram umbi kukus yang setara energi dengan porsi nasi yang biasa dimakan si kecil? Geser slider atau ketuk centong di bawah ini untuk melihat takarannya secara langsung.
-          </p>
-        </div>
-
-        <button
-          onClick={() => { sound.playClick(); setShowFormulaModal(!showFormulaModal); }}
-          className="self-start sm:self-auto px-3.5 py-2 bg-brand-cream hover:bg-brand-subtle text-stone-700 rounded-xl border border-brand-border text-xs font-bold transition-all flex items-center gap-1.5 btn-press"
-          title="Lihat rumus ilmiah konversi"
-        >
-          <Info className="w-4 h-4 text-brand-orange" />
-          <span>{showFormulaModal ? 'Tutup Rumus' : 'Rumus Konversi'}</span>
-        </button>
-      </div>
-
-      {/* Formula Explanation Drawer */}
-      {showFormulaModal && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-brand-green/30 text-xs text-stone-800 space-y-2 animate-fade-in-up">
-          <div className="flex items-center justify-between font-bold text-brand-green">
-            <span className="flex items-center gap-1.5 text-sm">
-              <Scale className="w-4 h-4" />
-              Formula Setara Energi (Iso-Caloric Equivalence):
-            </span>
-            <span className="text-[11px] bg-white px-2 py-0.5 rounded border border-brand-green/30">
-              Acuan: Nasi Matang 130 kkal/100g
-            </span>
-          </div>
-          <p className="text-stone-700 leading-relaxed">
-            • <strong>1 Centong Anak</strong> rata-rata = 50g nasi putih matang (<strong>65 kkal</strong> & 14g karbohidrat).<br />
-            • <strong>Singkong (162,5 kkal/100g):</strong> Gram = (Target Energi / 162,5) × 100 → 100g nasi (~130 kkal) = <strong>~80g singkong</strong>.<br />
-            • <strong>Ubi Jalar (86 kkal/100g):</strong> Gram = (Target Energi / 86) × 100 → 100g nasi (~130 kkal) = <strong>~151g ubi jalar</strong>.<br />
-            • <strong>Talas (145 kkal/100g):</strong> Gram = (Target Energi / 145) × 100 → 100g nasi (~130 kkal) = <strong>~90g talas</strong>.
-          </p>
-        </div>
-      )}
-
-      {/* Interactive Slider & Quick Presets */}
-      <div className="bg-brand-cream/80 p-6 sm:p-7 rounded-3xl border border-brand-border space-y-6 shadow-inner">
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* LANGKAH 1: PILIH PORSI NASI ANAK */}
+      <div className="bg-white rounded-3xl border border-brand-border shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex items-start gap-3.5">
+          <span className="w-8 h-8 rounded-full bg-brand-green text-white font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
+            1
+          </span>
           <div>
-            <label className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
-              Porsi Nasi Putih Matang yang Dimakan Anak
-            </label>
-            <div className="flex items-baseline gap-2.5 mt-1.5">
-              <span className="text-4xl sm:text-5xl font-black text-brand-green tracking-tight transition-transform animate-pop">
-                {centong}
-              </span>
-              <span className="text-base font-bold text-stone-800">Centong Anak</span>
-              <span className="text-xs font-semibold text-brand-orange bg-orange-100/80 px-2.5 py-0.5 rounded-full border border-orange-200">
-                {result.targetEnergyKcal} kkal (~{result.cookedRiceGrams}g nasi)
-              </span>
-            </div>
+            <h2 className="text-lg sm:text-2xl font-black text-stone-900">
+              Biasanya Si Kecil Makan Berapa Centong Nasi?
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
+              Pilih ukuran porsi nasi sekali makan di bawah ini (1 centong anak sekitar 50 gram nasi):
+            </p>
           </div>
+        </div>
 
-          {/* Quick Preset Buttons with tactile feedback */}
-          <div className="flex flex-wrap gap-1.5">
-            {[1, 1.5, 2, 3, 4].map(val => (
+        {/* Tombol Pilihan Porsi Besar & Mudah Disentuh */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {presets.map(item => {
+            const isSelected = centong === item.val;
+            return (
               <button
-                key={val}
-                onClick={() => handlePreset(val)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all min-h-[44px] btn-press ${
-                  activePreset === val
-                    ? 'bg-brand-green text-white shadow-glow-green scale-102'
-                    : 'bg-white text-stone-700 hover:bg-stone-50 border border-brand-border'
+                key={item.val}
+                type="button"
+                onClick={() => handlePreset(item.val)}
+                className={`p-4 rounded-2xl border-2 text-center transition-all btn-press ${
+                  isSelected
+                    ? 'bg-brand-green text-white border-brand-green shadow-md scale-[1.02]'
+                    : 'bg-brand-cream/60 text-stone-800 border-brand-border hover:bg-stone-100'
                 }`}
               >
-                {val} Centong
+                <span className="text-base sm:text-lg font-black block">{item.label}</span>
+                <span className={`text-[11px] font-semibold block mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-stone-500'}`}>
+                  {item.sub}
+                </span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* Custom Range Slider with Dynamic CSS Fill Variable */}
-        <div className="space-y-2 pt-2">
-          <input
-            type="range"
-            min="0.5"
-            max="6"
-            step="0.5"
-            value={centong}
-            onChange={handleSlider}
-            style={{ '--fill': `${sliderPercent}%` } as React.CSSProperties}
-            className="range-brand"
-            aria-label="Pilih jumlah centong nasi anak"
-          />
-          <div className="flex justify-between text-xs text-stone-500 font-semibold px-1">
-            <span>½ Centong (MPASI Awal)</span>
-            <span>2 Centong (1-2 Tahun)</span>
-            <span>4 Centong (3-5 Tahun)</span>
-            <span>6 Centong</span>
+        {/* Ringkasan Porsi Nasi yang Dipilih */}
+        <div className="bg-brand-cream p-4 rounded-2xl border border-brand-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
+          <div className="flex items-center gap-2 font-bold text-stone-800">
+            <Flame className="w-5 h-5 text-brand-orange shrink-0" />
+            <span>
+              Porsi Dipilih: <strong className="text-brand-green">{centong} Centong Nasi</strong> (sekitar {result.cookedRiceGrams} gram nasi matang)
+            </span>
           </div>
-        </div>
-
-        {/* Real-time Calories Comparison Bar */}
-        <div className="pt-2 border-t border-brand-border/70 flex items-center justify-between text-xs text-stone-600">
-          <span className="flex items-center gap-1.5 font-bold text-stone-700">
-            <Flame className="w-4 h-4 text-brand-orange" />
-            Energi Setara: {result.targetEnergyKcal} kkal
-          </span>
-          <span className="text-[11px] text-stone-500">
-            Karbohidrat Nasi: ~{result.cookedRiceCarbsG}g • Protein Nasi: ~{result.cookedRiceProteinG}g
+          <span className="text-xs font-extrabold text-brand-orange bg-white px-3 py-1 rounded-full border border-orange-200">
+            Setara {result.targetEnergyKcal} kkal energi
           </span>
         </div>
-
       </div>
 
-      {/* Conversion Output Cards: 3 Umbi with Authentic Illustrations */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs sm:text-sm font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-brand-orange" />
-            <span>Hasil Takaran Setara {result.targetEnergyKcal} kkal dalam Gram & URT:</span>
-          </h3>
+      {/* LANGKAH 2: HASIL TAKARAN UMBI PENGGANTI NASI */}
+      <div className="bg-white rounded-3xl border border-brand-border shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="flex items-start gap-3.5">
+          <span className="w-8 h-8 rounded-full bg-brand-orange text-white font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
+            2
+          </span>
+          <div>
+            <h2 className="text-lg sm:text-2xl font-black text-stone-900">
+              Takaran Umbi Kukus Pengganti Nasinya
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
+              Pilih salah satu umbi di bawah ini untuk menggantikan <strong>{centong} centong nasi</strong> dengan jumlah energi yang sama:
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* 1. Singkong Kukus */}
-          <div className="bg-white rounded-3xl border-2 border-brand-green/30 p-5 relative overflow-hidden flex flex-col justify-between card-lift group">
-            
+          {/* 1. Ubi Jalar */}
+          <div className="bg-orange-50/40 rounded-3xl border-2 border-brand-orange/40 p-5 flex flex-col justify-between">
             <div className="space-y-4">
-              {/* Tuber Image & Badge */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-cream h-40 flex items-center justify-center p-2">
-                <img
-                  src={getTuberImage('singkong')}
-                  alt="Singkong Manis Segar"
-                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                />
-                <span className="absolute top-2.5 right-2.5 bg-brand-green text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-                  162,5 kkal/100g
-                </span>
-                <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-sm text-brand-green text-[10px] font-bold px-2 py-0.5 rounded-md border border-brand-green/20">
-                  Singkong / Mocaf
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[11px] font-black text-brand-green uppercase tracking-wide block">
-                  Pilihan 1 • Padat Kalori
-                </span>
-                <h4 className="text-lg font-black text-stone-900 mt-0.5">Singkong Kukus</h4>
-                
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-brand-green tracking-tight">
-                    {result.singkongGrams}
-                  </span>
-                  <span className="text-sm font-bold text-stone-700">gram kukus</span>
-                </div>
-                
-                <div className="text-xs text-stone-700 font-semibold mt-1 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
-                  <UtensilsCrossed className="w-3.5 h-3.5 text-brand-green shrink-0" />
-                  <span>Takaran Rumah Tangga: {result.singkongUrt}</span>
-                </div>
-                <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">
-                  Cocok untuk balita aktif atau yang sedang Gerakan Tutup Mulut (GTM) nasi. Tekstur empuk pulen.
-                </p>
-              </div>
-            </div>
-
-            {onSelectRecipeByTuber && (
-              <button
-                onClick={() => { sound.playClick(); onSelectRecipeByTuber('singkong'); }}
-                className="mt-5 w-full py-2.5 bg-emerald-50 hover:bg-brand-green hover:text-white text-brand-green border border-brand-green/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 min-h-[44px] btn-press"
-              >
-                <ChefHat className="w-4 h-4" />
-                <span>Lihat Resep Olahan Singkong</span>
-              </button>
-            )}
-          </div>
-
-          {/* 2. Ubi Jalar Kukus */}
-          <div className="bg-white rounded-3xl border-2 border-brand-orange/30 p-5 relative overflow-hidden flex flex-col justify-between card-lift group">
-            
-            <div className="space-y-4">
-              {/* Tuber Image & Badge */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-cream h-40 flex items-center justify-center p-2">
+              <div className="flex items-center gap-3.5">
                 <img
                   src={getTuberImage('ubi-jalar')}
-                  alt="Ubi Jalar Oranye & Ungu"
-                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  alt="Ubi Jalar"
+                  className="w-16 h-16 rounded-2xl object-cover bg-white border border-orange-200 shadow-xs shrink-0"
                 />
-                <span className="absolute top-2.5 right-2.5 bg-brand-orange text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-                  IG Rendah (44)
-                </span>
-                <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-sm text-brand-orange text-[10px] font-bold px-2 py-0.5 rounded-md border border-brand-orange/20">
-                  Ubi Jalar Oranye/Ungu
-                </span>
+                <div>
+                  <span className="text-[11px] font-bold text-brand-orange bg-orange-100 px-2.5 py-0.5 rounded-full">
+                    Kaya Vitamin A
+                  </span>
+                  <h3 className="text-lg font-black text-stone-900 mt-0.5">Ubi Jalar Kukus</h3>
+                </div>
               </div>
 
-              <div>
-                <span className="text-[11px] font-black text-brand-orange uppercase tracking-wide block">
-                  Pilihan 2 • Beta-Karoten Juara
-                </span>
-                <h4 className="text-lg font-black text-stone-900 mt-0.5">Ubi Jalar Kukus</h4>
-                
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-brand-orange tracking-tight">
-                    {result.ubiJalarGrams}
-                  </span>
-                  <span className="text-sm font-bold text-stone-700">gram kukus</span>
+              <div className="bg-white p-4 rounded-2xl border border-orange-200 space-y-1">
+                <span className="text-xs text-stone-500 font-semibold block">Takaran Pengganti Nasi:</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black text-brand-orange">{result.ubiJalarGrams}</span>
+                  <span className="text-sm font-bold text-stone-700">gram</span>
                 </div>
-                
-                <div className="text-xs text-stone-700 font-semibold mt-1 bg-orange-50/80 p-2.5 rounded-xl border border-orange-200 flex items-center gap-1.5">
-                  <Scale className="w-3.5 h-3.5 text-brand-orange shrink-0" />
-                  <span>Takaran Rumah Tangga: {result.ubiJalarUrt}</span>
+                <div className="pt-2 mt-2 border-t border-stone-100 flex items-center gap-1.5 text-xs font-bold text-stone-800">
+                  <UtensilsCrossed className="w-4 h-4 text-brand-orange shrink-0" />
+                  <span>Ukuran Rumah: {result.ubiJalarUrt}</span>
                 </div>
-                <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">
-                  Super kaya Vitamin A alami untuk mata anak & serat tinggi. Rasa manis legit alami tanpa gula pasir.
-                </p>
               </div>
+
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Rasa manis alami dan mudah dilumatkan. Bagus untuk daya tahan tubuh si kecil.
+              </p>
             </div>
 
             {onSelectRecipeByTuber && (
               <button
                 onClick={() => { sound.playClick(); onSelectRecipeByTuber('ubi-jalar'); }}
-                className="mt-5 w-full py-2.5 bg-orange-50 hover:bg-brand-orange hover:text-white text-brand-orange border border-brand-orange/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 min-h-[44px] btn-press"
+                className="mt-4 w-full py-3 bg-brand-orange hover:bg-orange-700 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 btn-press shadow-xs"
               >
                 <ChefHat className="w-4 h-4" />
-                <span>Lihat Resep Olahan Ubi Jalar</span>
+                <span>Lihat Resep Ubi Jalar</span>
               </button>
             )}
           </div>
 
-          {/* 3. Talas Kukus */}
-          <div className="bg-white rounded-3xl border-2 border-brand-purple/30 p-5 relative overflow-hidden flex flex-col justify-between card-lift group">
-            
+          {/* 2. Singkong */}
+          <div className="bg-emerald-50/40 rounded-3xl border-2 border-brand-green/40 p-5 flex flex-col justify-between">
             <div className="space-y-4">
-              {/* Tuber Image & Badge */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-cream h-40 flex items-center justify-center p-2">
+              <div className="flex items-center gap-3.5">
                 <img
-                  src={getTuberImage('talas')}
-                  alt="Talas Bogor Segar"
-                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  src={getTuberImage('singkong')}
+                  alt="Singkong"
+                  className="w-16 h-16 rounded-2xl object-cover bg-white border border-emerald-200 shadow-xs shrink-0"
                 />
-                <span className="absolute top-2.5 right-2.5 bg-brand-purple text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
-                  Kalium 536mg
-                </span>
-                <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-sm text-brand-purple text-[10px] font-bold px-2 py-0.5 rounded-md border border-brand-purple/20">
-                  Talas Bogor
-                </span>
+                <div>
+                  <span className="text-[11px] font-bold text-brand-green bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    Tenaga Padat
+                  </span>
+                  <h3 className="text-lg font-black text-stone-900 mt-0.5">Singkong Kukus</h3>
+                </div>
               </div>
 
-              <div>
-                <span className="text-[11px] font-black text-brand-purple uppercase tracking-wide block">
-                  Pilihan 3 • Pati Terhalus Bayi
-                </span>
-                <h4 className="text-lg font-black text-stone-900 mt-0.5">Talas Kukus</h4>
-                
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-brand-purple tracking-tight">
-                    {result.talasGrams}
-                  </span>
-                  <span className="text-sm font-bold text-stone-700">gram kukus</span>
+              <div className="bg-white p-4 rounded-2xl border border-emerald-200 space-y-1">
+                <span className="text-xs text-stone-500 font-semibold block">Takaran Pengganti Nasi:</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black text-brand-green">{result.singkongGrams}</span>
+                  <span className="text-sm font-bold text-stone-700">gram</span>
                 </div>
-                
-                <div className="text-xs text-stone-700 font-semibold mt-1 bg-purple-50/80 p-2.5 rounded-xl border border-purple-200 flex items-center gap-1.5">
-                  <Scale className="w-3.5 h-3.5 text-brand-purple shrink-0" />
-                  <span>Takaran Rumah Tangga: {result.talasUrt}</span>
+                <div className="pt-2 mt-2 border-t border-stone-100 flex items-center gap-1.5 text-xs font-bold text-stone-800">
+                  <UtensilsCrossed className="w-4 h-4 text-brand-green shrink-0" />
+                  <span>Ukuran Rumah: {result.singkongUrt}</span>
                 </div>
-                <p className="text-[11px] text-stone-500 mt-2 leading-relaxed">
-                  Pati sangat halus mudah dicerna. <em>Tips: Kupas kering & rendam air garam hangat 20 menit agar 100% bebas gatal.</em>
-                </p>
               </div>
+
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Padat energi dan mengenyangkan. Pastikan memilih singkong manis segar & dimasak matang.
+              </p>
+            </div>
+
+            {onSelectRecipeByTuber && (
+              <button
+                onClick={() => { sound.playClick(); onSelectRecipeByTuber('singkong'); }}
+                className="mt-4 w-full py-3 bg-brand-green hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 btn-press shadow-xs"
+              >
+                <ChefHat className="w-4 h-4" />
+                <span>Lihat Resep Singkong</span>
+              </button>
+            )}
+          </div>
+
+          {/* 3. Talas */}
+          <div className="bg-purple-50/40 rounded-3xl border-2 border-brand-purple/40 p-5 flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3.5">
+                <img
+                  src={getTuberImage('talas')}
+                  alt="Talas"
+                  className="w-16 h-16 rounded-2xl object-cover bg-white border border-purple-200 shadow-xs shrink-0"
+                />
+                <div>
+                  <span className="text-[11px] font-bold text-brand-purple bg-purple-100 px-2.5 py-0.5 rounded-full">
+                    Lembut di Perut
+                  </span>
+                  <h3 className="text-lg font-black text-stone-900 mt-0.5">Talas Kukus</h3>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-purple-200 space-y-1">
+                <span className="text-xs text-stone-500 font-semibold block">Takaran Pengganti Nasi:</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-black text-brand-purple">{result.talasGrams}</span>
+                  <span className="text-sm font-bold text-stone-700">gram</span>
+                </div>
+                <div className="pt-2 mt-2 border-t border-stone-100 flex items-center gap-1.5 text-xs font-bold text-stone-800">
+                  <Scale className="w-4 h-4 text-brand-purple shrink-0" />
+                  <span>Ukuran Rumah: {result.talasUrt}</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-stone-600 leading-relaxed">
+                Tekstur pulen & mudah dicerna. Kupas kering dan rendam air garam hangat dulu agar bebas gatal.
+              </p>
             </div>
 
             {onSelectRecipeByTuber && (
               <button
                 onClick={() => { sound.playClick(); onSelectRecipeByTuber('talas'); }}
-                className="mt-5 w-full py-2.5 bg-purple-50 hover:bg-brand-purple hover:text-white text-brand-purple border border-brand-purple/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 min-h-[44px] btn-press"
+                className="mt-4 w-full py-3 bg-brand-purple hover:bg-purple-900 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 btn-press shadow-xs"
               >
                 <ChefHat className="w-4 h-4" />
-                <span>Lihat Resep Olahan Talas</span>
+                <span>Lihat Resep Talas</span>
               </button>
             )}
           </div>
@@ -336,44 +249,94 @@ export const RiceToTuberCalc: React.FC<RiceToTuberCalcProps> = ({ onSelectRecipe
         </div>
       </div>
 
-      {/* Interactive Protein Compensation Selector */}
-      <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/70 p-6 rounded-3xl border-2 border-amber-300 shadow-sm space-y-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <span className="font-black text-sm text-amber-950 block">
-              Aturan Wajib: Tambahkan Lauk Pendamping Protein ({result.proteinDifferenceG}g Protein Tambahan)
-            </span>
-            <p className="text-xs text-stone-700 leading-relaxed mt-0.5">
-              Karena protein alami umbi lokal (1,0 - 1,57g) lebih rendah dari beras, Bunda WAJIB menambahkan salah satu lauk hewani di bawah ini agar gizi balita seimbang dan terhindar dari risiko stunting:
+      {/* LANGKAH 3: PADUAN WAJIB PROTEIN HEWANI */}
+      <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/70 p-6 sm:p-8 rounded-3xl border-2 border-amber-300 shadow-sm space-y-5">
+        <div className="flex items-start gap-3.5">
+          <span className="w-8 h-8 rounded-full bg-brand-orange text-white font-black text-sm flex items-center justify-center shrink-0 mt-0.5">
+            3
+          </span>
+          <div>
+            <h2 className="text-lg sm:text-2xl font-black text-stone-900">
+              Tambahkan 1 Lauk Protein Hewani Pendamping
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-700 mt-1 leading-relaxed">
+              Karena umbi adalah sumber karbohidrat (pengganti nasi), Bunda <strong>wajib menambahkan lauk protein hewani</strong> di bawah ini agar gizi si kecil lengkap dan mencegah stunting:
             </p>
           </div>
         </div>
 
-        {/* Interactive Add-on Selection Pills */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
           {[
-            { id: 'telur', label: '+ 1 Butir Telur Ayam (50g)', protein: '6,3g Protein Lengkap', desc: 'Skor asam amino 100 & kaya kolin otak' },
-            { id: 'ikan', label: '+ 1 Potong Ikan Kembung (35g)', protein: '7,4g Protein + DHA', desc: 'Omega-3 tinggi untuk kecerdasan anak' },
-            { id: 'hati', label: '+ 1 Buah Hati Ayam (30g)', protein: '5,1g Protein + Zat Besi', desc: 'Zat besi heme cegah anemia MPASI' },
-          ].map(addon => (
-            <button
-              key={addon.id}
-              onClick={() => { sound.playClick(); setSelectedProteinAddon(addon.id); }}
-              className={`p-3.5 rounded-2xl border-2 text-left transition-all btn-press ${
-                selectedProteinAddon === addon.id
-                  ? 'bg-white border-brand-orange shadow-md scale-102'
-                  : 'bg-white/60 border-amber-200 hover:bg-white text-stone-700'
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs font-black text-stone-900">
-                <span>{addon.label}</span>
-                {selectedProteinAddon === addon.id && <CheckCircle2 className="w-4 h-4 text-brand-orange" />}
-              </div>
-              <span className="text-[11px] font-bold text-brand-orange block mt-1">{addon.protein}</span>
-              <span className="text-[10px] text-stone-500 block mt-0.5">{addon.desc}</span>
-            </button>
-          ))}
+            { 
+              id: 'telur', 
+              label: '1 Butir Telur Ayam', 
+              portion: 'Sekitar 50 gram',
+              benefit: 'Tinggi protein (6,3g) & kolin untuk perkembangan otak anak.' 
+            },
+            { 
+              id: 'ikan', 
+              label: '1 Potong Ikan Kembung / Lele', 
+              portion: 'Sekitar 35–40 gram',
+              benefit: 'Tinggi protein (7,4g) & Omega-3 alami untuk kecerdasan.' 
+            },
+            { 
+              id: 'hati', 
+              label: '1 Buah Hati Ayam', 
+              portion: 'Sekitar 30 gram',
+              benefit: 'Sangat kaya Zat Besi untuk mencegah anemia pada bayi MPASI.' 
+            },
+            { 
+              id: 'ayam', 
+              label: 'Daging Ayam Cincang', 
+              portion: '3 Sendok Makan (40g)',
+              benefit: 'Sumber protein hewani & mineral Seng (Zinc) untuk pertumbuhan tinggi badan.' 
+            },
+          ].map(addon => {
+            const isSelected = selectedProteinAddon === addon.id;
+            return (
+              <button
+                key={addon.id}
+                type="button"
+                onClick={() => { sound.playClick(); setSelectedProteinAddon(addon.id); }}
+                className={`p-4 rounded-2xl border-2 text-left transition-all btn-press flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-white border-brand-orange shadow-md'
+                    : 'bg-white/75 border-amber-200 hover:bg-white text-stone-700'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 font-black text-sm text-stone-900">
+                    <span>+ {addon.label}</span>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />}
+                  </div>
+                  <span className="text-xs font-bold text-brand-orange block mt-1">{addon.portion}</span>
+                </div>
+                <p className="text-xs text-stone-600 mt-2 leading-relaxed">{addon.benefit}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Ringkasan Panduan Tekstur Sesuai Usia */}
+        <div className="bg-white/90 p-4 rounded-2xl border border-amber-200 text-xs sm:text-sm text-stone-800 space-y-1.5">
+          <div className="font-black text-brand-green flex items-center gap-1.5">
+            <HeartPulse className="w-4 h-4" />
+            <span>Pengingat Tekstur Makanan Sesuai Usia Anak:</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs text-stone-700">
+            <div className="p-2.5 bg-brand-cream rounded-xl border border-brand-border">
+              <strong className="text-stone-900 block">Bayi 6–8 Bulan:</strong>
+              Lumatkan halus dan saring hingga menjadi bubur kental (puree).
+            </div>
+            <div className="p-2.5 bg-brand-cream rounded-xl border border-brand-border">
+              <strong className="text-stone-900 block">Bayi 9–11 Bulan:</strong>
+              Bubur tim lembut atau dicincang kasar agar bayi belajar mengunyah.
+            </div>
+            <div className="p-2.5 bg-brand-cream rounded-xl border border-brand-border">
+              <strong className="text-stone-900 block">Anak 1–5 Tahun:</strong>
+              Makanan keluarga yang empuk atau camilan yang mudah dipegang tangan.
+            </div>
+          </div>
         </div>
       </div>
 

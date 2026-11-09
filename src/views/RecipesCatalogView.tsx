@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
-import { Recipe, TuberSlug, AgeCategory, CookingMethod } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Recipe } from '../types';
 import { RecipeCard } from '../components/recipes/RecipeCard';
 import { getTuberImage } from '../lib/tuber-assets';
 import { sound } from '../lib/sound-effects';
 import { 
   Search, 
   ChefHat, 
-  Filter, 
-  RotateCcw, 
-  Sparkles, 
-  Clock, 
-  Star,
-  SlidersHorizontal 
+  RotateCcw,
+  X
 } from 'lucide-react';
 
 interface RecipesCatalogViewProps {
@@ -30,79 +26,52 @@ export const RecipesCatalogView: React.FC<RecipesCatalogViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTuber, setSelectedTuber] = useState<string>(initialTuberFilter || 'all');
   const [selectedAge, setSelectedAge] = useState<string>(initialAgeFilter || 'all');
-  const [selectedProtein, setSelectedProtein] = useState<string>('all');
-  const [selectedMethod, setSelectedMethod] = useState<string>('all');
-  const [selectedMaxTime, setSelectedMaxTime] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'rating' | 'time' | 'title'>('rating');
 
-  // Filter and search logic with Indonesian tuber synonyms
+  useEffect(() => {
+    if (initialTuberFilter) setSelectedTuber(initialTuberFilter);
+  }, [initialTuberFilter]);
+
+  useEffect(() => {
+    if (initialAgeFilter) setSelectedAge(initialAgeFilter);
+  }, [initialAgeFilter]);
+
+  const quickFridgeIngredients = [
+    'Telur',
+    'Ikan',
+    'Ayam',
+    'Hati Ayam',
+    'Tempe',
+    'Keju',
+    'Pisang'
+  ];
+
   const filteredRecipes = recipes.filter(r => {
-    // Only show published or featured recipes for public catalog (drafts stay in kader dashboard)
     if (r.status === 'DRAFT' || r.status === 'ARCHIVED') return false;
 
-    // Synonym mapping
     const q = searchQuery.toLowerCase().trim();
     let queryMatches = true;
 
     if (q) {
-      // Synonyms: "boled", "ketela" -> ubi jalar; "sampeu", "kaspe" -> singkong; "keladi" -> talas
-      const isBoledKetela = q.includes('boled') || q.includes('ketela');
-      const isSampeuKaspe = q.includes('sampeu') || q.includes('kaspe');
-      const isKeladi = q.includes('keladi');
+      const isBoledKetela = q.includes('boled') || q.includes('ketela') || q.includes('ubi');
+      const isSampeuKaspe = q.includes('sampeu') || q.includes('kaspe') || q.includes('singkong');
+      const isKeladi = q.includes('keladi') || q.includes('talas');
 
       const titleMatches = r.title.toLowerCase().includes(q);
       const descMatches = r.shortDescription.toLowerCase().includes(q);
-      const codeMatches = r.recipeCode.toLowerCase().includes(q);
       const tuberMatches = r.tuberSlug.includes(q) ||
         (isBoledKetela && r.tuberSlug === 'ubi-jalar') ||
         (isSampeuKaspe && r.tuberSlug === 'singkong') ||
         (isKeladi && r.tuberSlug === 'talas');
-
-      // Check ingredient pantry matches
       const ingMatches = r.ingredients.some(ing => ing.ingredientName.toLowerCase().includes(q));
 
-      queryMatches = titleMatches || descMatches || codeMatches || tuberMatches || ingMatches;
+      queryMatches = titleMatches || descMatches || tuberMatches || ingMatches;
     }
 
     if (!queryMatches) return false;
-
-    // Tuber filter
     if (selectedTuber !== 'all' && r.tuberSlug !== selectedTuber) return false;
-
-    // Age filter
     if (selectedAge !== 'all' && r.ageCategory !== selectedAge) return false;
 
-    // Protein filter
-    if (selectedProtein !== 'all') {
-      const hasMatchingProtein = r.ingredients.some(ing => {
-        const name = ing.ingredientName.toLowerCase();
-        if (selectedProtein === 'ikan') return name.includes('ikan') || name.includes('lele') || name.includes('kembung');
-        if (selectedProtein === 'ayam') return name.includes('ayam') && !name.includes('hati');
-        if (selectedProtein === 'hati') return name.includes('hati');
-        if (selectedProtein === 'telur') return name.includes('telur');
-        if (selectedProtein === 'nabati') return name.includes('tempe') || name.includes('tahu');
-        return false;
-      });
-      if (!hasMatchingProtein) return false;
-    }
-
-    // Method filter
-    if (selectedMethod !== 'all' && r.cookingMethod !== selectedMethod) return false;
-
-    // Time filter
-    const totalTime = r.prepTimeMinutes + r.cookTimeMinutes;
-    if (selectedMaxTime === 'fast' && totalTime > 25) return false;
-    if (selectedMaxTime === 'medium' && (totalTime < 25 || totalTime > 40)) return false;
-    if (selectedMaxTime === 'long' && totalTime <= 40) return false;
-
     return true;
-  });
-
-  // Sort logic
-  const sortedRecipes = [...filteredRecipes].sort((a, b) => {
-    if (sortBy === 'rating') return b.avgLahapRating - a.avgLahapRating;
-    if (sortBy === 'time') return (a.prepTimeMinutes + a.cookTimeMinutes) - (b.prepTimeMinutes + b.cookTimeMinutes);
-    return a.title.localeCompare(b.title);
   });
 
   const handleResetFilters = () => {
@@ -110,198 +79,187 @@ export const RecipesCatalogView: React.FC<RecipesCatalogViewProps> = ({
     setSearchQuery('');
     setSelectedTuber('all');
     setSelectedAge('all');
-    setSelectedProtein('all');
-    setSelectedMethod('all');
-    setSelectedMaxTime('all');
-    setSortBy('rating');
   };
 
-  const isFiltered = searchQuery !== '' || selectedTuber !== 'all' || selectedAge !== 'all' || 
-    selectedProtein !== 'all' || selectedMethod !== 'all' || selectedMaxTime !== 'all';
+  const isFiltered = searchQuery !== '' || selectedTuber !== 'all' || selectedAge !== 'all';
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-8 pb-12 animate-fade-in">
       
-      {/* Title & Introduction */}
-      <div>
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-orange/10 text-brand-orange rounded-full text-xs font-bold mb-2">
-          <ChefHat className="w-3.5 h-3.5" />
-          Katalog Pangan Bergizi Posyandu
+      {/* 1. Header Ramah Ibu */}
+      <div className="bg-white rounded-3xl border border-brand-border p-6 sm:p-10 shadow-sm space-y-3">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-brand-orange/10 text-brand-orange rounded-full text-xs sm:text-sm font-bold">
+          <ChefHat className="w-4 h-4" />
+          <span>Katalog Resep</span>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight">
-          Katalog Resep Olahan Umbi MPASI & Balita
+        <h1 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight leading-tight">
+          Resep Olahan Umbi untuk MPASI & Anak Balita
         </h1>
-        <p className="text-xs sm:text-sm text-stone-600 mt-1">
-          Cari resep berdasarkan bahan yang ada di kulkas Bunda, jenis umbi, atau kelompok usia si kecil.
+        <p className="text-sm sm:text-base text-stone-600 max-w-3xl leading-relaxed">
+          Cari resep berdasarkan <strong>bahan yang ada di kulkas Bunda</strong>, <strong>jenis umbi</strong>, atau <strong>kelompok usia si kecil</strong>. Semua resep sudah dilengkapi lauk protein hewani.
         </p>
       </div>
 
-      {/* Search Bar & Visual Tuber Selector */}
-      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-brand-border shadow-sm space-y-4">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Cari resep atau ketik bahan kulkas (contoh: 'ikan kembung', 'ubi telur', 'talas lele', 'sampeu', 'boled')..."
-            className="w-full pl-11 pr-4 py-3 bg-brand-cream text-stone-900 rounded-2xl text-xs sm:text-sm font-semibold border border-brand-border focus:outline-none focus:ring-2 focus:ring-brand-green shadow-inner"
-          />
-          <Search className="w-5 h-5 text-stone-400 absolute left-3.5 top-3.5" />
+      {/* 2. Kotak Pencarian & Filter Mudah (Tanpa Dropdown Rumit) */}
+      <div className="bg-white p-5 sm:p-7 rounded-3xl border border-brand-border shadow-sm space-y-6">
+        
+        {/* A. Pencarian Bahan Kulkas */}
+        <div className="space-y-3">
+          <label className="text-xs sm:text-sm font-black text-stone-800 block">
+            1. Cari Nama Masakan atau Bahan di Kulkas Bunda:
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Ketik bahan yang ada di rumah (contoh: telur, ikan, ayam, keju)..."
+              className="w-full pl-11 pr-10 py-3.5 bg-brand-cream text-stone-900 rounded-2xl text-sm font-semibold border border-brand-border focus:outline-none focus:ring-2 focus:ring-brand-green"
+            />
+            <Search className="w-5 h-5 text-stone-400 absolute left-3.5 top-3.5" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-3 p-1 text-stone-400 hover:text-stone-700"
+                aria-label="Hapus pencarian"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Tombol Bahan Kulkas Cepat */}
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <span className="text-xs font-bold text-stone-500">Pilih Cepat Isi Kulkas:</span>
+            {quickFridgeIngredients.map(ing => {
+              const isSelected = searchQuery.toLowerCase() === ing.toLowerCase();
+              return (
+                <button
+                  key={ing}
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setSearchQuery(isSelected ? '' : ing);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border btn-press ${
+                    isSelected
+                      ? 'bg-brand-orange text-white border-brand-orange shadow-xs'
+                      : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                  }`}
+                >
+                  + {ing}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Visual Tuber Quick Filter Buttons with Photos */}
-        <div className="flex flex-wrap gap-2 pt-1 border-t border-brand-border/60">
-          {[
-            { id: 'all', label: 'Semua Umbi', img: null },
-            { id: 'singkong', label: 'Singkong / Mocaf', img: getTuberImage('singkong') },
-            { id: 'ubi-jalar', label: 'Ubi Jalar', img: getTuberImage('ubi-jalar') },
-            { id: 'talas', label: 'Talas Bogor', img: getTuberImage('talas') }
-          ].map(t => (
+        {/* B. Pilihan Jenis Umbi */}
+        <div className="space-y-2.5 pt-4 border-t border-brand-border/60">
+          <label className="text-xs sm:text-sm font-black text-stone-800 block">
+            2. Pilih Jenis Umbi:
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {[
+              { id: 'all', label: 'Semua Umbi', img: null },
+              { id: 'ubi-jalar', label: 'Ubi Jalar', img: getTuberImage('ubi-jalar') },
+              { id: 'singkong', label: 'Singkong', img: getTuberImage('singkong') },
+              { id: 'talas', label: 'Talas', img: getTuberImage('talas') }
+            ].map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setSelectedTuber(t.id);
+                }}
+                className={`p-3 rounded-2xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2.5 border-2 btn-press ${
+                  selectedTuber === t.id
+                    ? 'bg-brand-green text-white border-brand-green shadow-sm'
+                    : 'bg-brand-cream/60 text-stone-800 border-brand-border hover:bg-stone-100'
+                }`}
+              >
+                {t.img && (
+                  <img src={t.img} alt={t.label} className="w-6 h-6 rounded-full object-cover shrink-0 bg-white" />
+                )}
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* C. Pilihan Kelompok Usia Anak */}
+        <div className="space-y-2.5 pt-4 border-t border-brand-border/60">
+          <label className="text-xs sm:text-sm font-black text-stone-800 block">
+            3. Pilih Kelompok Usia Si Kecil:
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'all', label: 'Semua Usia' },
+              { id: 'MPASI_6_8', label: '6–8 Bulan (Bubur Halus)' },
+              { id: 'MPASI_9_11', label: '9–11 Bulan (Bubur Tim)' },
+              { id: 'MPASI_12_23', label: '1–2 Tahun' },
+              { id: 'BALITA_2_5', label: '2–5 Tahun' },
+              { id: 'PMT_KUDAPAN', label: 'Camilan Sehat PMT' }
+            ].map(age => (
+              <button
+                key={age.id}
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setSelectedAge(age.id);
+                }}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border btn-press ${
+                  selectedAge === age.id
+                    ? 'bg-brand-orange text-white border-brand-orange shadow-sm'
+                    : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                }`}
+              >
+                {age.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Status Bar & Tombol Reset */}
+        {isFiltered && (
+          <div className="flex items-center justify-between pt-3 border-t border-brand-border/60 text-xs sm:text-sm">
+            <span className="text-stone-600 font-medium">
+              Menampilkan <strong>{filteredRecipes.length} resep</strong> yang cocok
+            </span>
             <button
-              key={t.id}
-              onClick={() => {
-                sound.playClick();
-                setSelectedTuber(t.id);
-              }}
-              className={`btn-press px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                selectedTuber === t.id
-                  ? 'bg-brand-green text-white shadow-sm'
-                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200'
-              }`}
-            >
-              {t.img && (
-                <img src={t.img} alt={t.label} className="w-5 h-5 rounded-full object-cover shrink-0" />
-              )}
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Multi-Filters Controls Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1">
-          
-          {/* Filter 1: Umbi Dropdown */}
-          <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Jenis Umbi</label>
-            <select
-              value={selectedTuber}
-              onChange={e => {
-                sound.playClick();
-                setSelectedTuber(e.target.value);
-              }}
-              className="w-full px-2.5 py-2 text-xs rounded-xl border border-brand-border bg-white text-stone-800 font-semibold"
-            >
-              <option value="all">Semua Umbi</option>
-              <option value="singkong">Singkong / Mocaf</option>
-              <option value="ubi-jalar">Ubi Jalar</option>
-              <option value="talas">Talas Bogor</option>
-            </select>
-          </div>
-
-          {/* Filter 2: Usia Anak */}
-          <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Usia Anak</label>
-            <select
-              value={selectedAge}
-              onChange={e => setSelectedAge(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs rounded-xl border border-brand-border bg-white text-stone-800 font-semibold"
-            >
-              <option value="all">Semua Usia</option>
-              <option value="MPASI_6_8">MPASI 6-8 Bulan</option>
-              <option value="MPASI_9_11">MPASI 9-11 Bulan</option>
-              <option value="MPASI_12_23">MPASI 12-23 Bulan</option>
-              <option value="BALITA_2_5">Balita 2-5 Tahun</option>
-              <option value="PMT_KUDAPAN">Kudapan PMT</option>
-            </select>
-          </div>
-
-          {/* Filter 3: Protein Pendamping */}
-          <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Protein Lauk</label>
-            <select
-              value={selectedProtein}
-              onChange={e => setSelectedProtein(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs rounded-xl border border-brand-border bg-white text-stone-800 font-semibold"
-            >
-              <option value="all">Semua Protein</option>
-              <option value="ikan">Ikan (Kembung/Lele)</option>
-              <option value="ayam">Daging Ayam</option>
-              <option value="hati">Hati Ayam</option>
-              <option value="telur">Telur Ayam/Puyuh</option>
-              <option value="nabati">Tempe / Nabati</option>
-            </select>
-          </div>
-
-          {/* Filter 4: Waktu Masak */}
-          <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Waktu Masak</label>
-            <select
-              value={selectedMaxTime}
-              onChange={e => setSelectedMaxTime(e.target.value)}
-              className="w-full px-2.5 py-2 text-xs rounded-xl border border-brand-border bg-white text-stone-800 font-semibold"
-            >
-              <option value="all">Semua Waktu</option>
-              <option value="fast">Cepat (&lt; 25 mnt)</option>
-              <option value="medium">Sedang (25-40 mnt)</option>
-              <option value="long">&gt; 40 mnt</option>
-            </select>
-          </div>
-
-          {/* Filter 5: Sort By */}
-          <div>
-            <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Urutkan</label>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              className="w-full px-2.5 py-2 text-xs rounded-xl border border-brand-border bg-white text-stone-800 font-bold"
-            >
-              <option value="rating">Rating Anak Lahap (Tertinggi)</option>
-              <option value="time">Waktu Memasak Tercepat</option>
-              <option value="title">Nama Resep (A-Z)</option>
-            </select>
-          </div>
-
-        </div>
-
-        {/* Status Bar & Reset Button */}
-        <div className="flex items-center justify-between pt-2 border-t border-brand-border/60 text-xs">
-          <span className="text-stone-500 font-medium">
-            Ditemukan <strong>{sortedRecipes.length} resep</strong> yang cocok
-          </span>
-
-          {isFiltered && (
-            <button
+              type="button"
               onClick={handleResetFilters}
-              className="text-stone-600 hover:text-brand-orange font-bold flex items-center gap-1"
+              className="text-brand-orange hover:underline font-bold flex items-center gap-1.5"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Filter</span>
+              <RotateCcw className="w-4 h-4" />
+              <span>Tampilkan Semua Resep</span>
             </button>
-          )}
-        </div>
-
+          </div>
+        )}
       </div>
 
-      {/* Recipes Cards Grid */}
-      {sortedRecipes.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-3xl border border-brand-border space-y-3">
-          <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
-            <Search className="w-8 h-8" />
+      {/* 3. Daftar Kartu Resep */}
+      {filteredRecipes.length === 0 ? (
+        <div className="p-10 text-center bg-white rounded-3xl border border-brand-border space-y-4">
+          <div className="w-14 h-14 rounded-full bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
+            <Search className="w-7 h-7" />
           </div>
-          <h3 className="text-lg font-bold text-stone-800">Tidak ada resep yang sesuai</h3>
-          <p className="text-xs text-stone-500 max-w-sm mx-auto">
-            Coba ubah kata kunci pencarian bahan kulkas atau klik "Reset Filter" untuk melihat semua resep.
+          <h3 className="text-lg font-black text-stone-800">Resep belum ditemukan</h3>
+          <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
+            Coba pilih jenis umbi yang lain atau tekan tombol di bawah ini untuk melihat seluruh daftar resep.
           </p>
           <button
             onClick={handleResetFilters}
-            className="px-4 py-2 bg-brand-green text-white rounded-xl text-xs font-bold"
+            className="px-5 py-2.5 bg-brand-green text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm"
           >
-            Reset Semua Filter
+            Tampilkan Semua Resep
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedRecipes.map(recipe => (
+          {filteredRecipes.map(recipe => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}

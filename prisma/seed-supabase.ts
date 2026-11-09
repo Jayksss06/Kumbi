@@ -14,8 +14,8 @@ import {
   DEMO_USERS 
 } from '../src/data/scientific-seed-data';
 
-const supabaseUrl = 'https://deucgyrgwovsszktdvih.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldWNneXJnd292c3N6a3RkdmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MjU3MDcsImV4cCI6MjEwODQwMTcwN30.ZwvFGAtKTXr8N-8EQoKB7CdrNn8zCQ0FTFvlqW5hMUo';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

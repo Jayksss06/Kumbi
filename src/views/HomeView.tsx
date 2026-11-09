@@ -1,370 +1,302 @@
 import React, { useState } from 'react';
-import { Recipe, TuberSlug } from '../types';
+import { Recipe } from '../types';
 import { RecipeCard } from '../components/recipes/RecipeCard';
-import { RiceToTuberCalc } from '../components/calculator/RiceToTuberCalc';
-import { TUBERS_DATA, NATIONAL_FOOD_STATS } from '../data/scientific-seed-data';
 import { getTuberImage } from '../lib/tuber-assets';
 import { sound } from '../lib/sound-effects';
 import { 
-  UtensilsCrossed, 
-  Sparkles, 
-  QrCode, 
   ArrowRight, 
   BookOpen, 
   ChefHat, 
-  HelpCircle, 
-  Users, 
-  Droplet, 
-  Scale, 
-  ShieldCheck, 
-  Search,
-  HeartHandshake,
-  Zap
+  Calculator,
+  HeartPulse,
+  CheckCircle2,
+  ShieldCheck
 } from 'lucide-react';
 
 interface HomeViewProps {
   recipes: Recipe[];
   onOpenRecipe: (recipe: Recipe) => void;
   onNavigate: (view: string) => void;
-  onOpenQuickPmtCode: (code: string) => void;
+  onNavigateToRecipesWithFilter?: (tuber?: string) => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   recipes,
   onOpenRecipe,
   onNavigate,
-  onOpenQuickPmtCode
+  onNavigateToRecipesWithFilter
 }) => {
-  const [quickCodeInput, setQuickCodeInput] = useState<string>('');
   const [selectedTuberFilter, setSelectedTuberFilter] = useState<string>('all');
 
-  const handleQuickSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (quickCodeInput.trim()) {
-      sound.playClick();
-      onOpenQuickPmtCode(quickCodeInput.trim());
-    }
-  };
-
-  const handleChipClick = (code: string) => {
-    sound.playClick();
-    setQuickCodeInput(code);
-    onOpenQuickPmtCode(code);
-  };
-
   const featuredRecipes = recipes.filter(r => {
+    if (r.status === 'DRAFT' || r.status === 'ARCHIVED') return false;
     if (selectedTuberFilter === 'all') return true;
     return r.tuberSlug === selectedTuberFilter;
   });
 
+  const mainFeatures = [
+    {
+      id: 'edukasi',
+      title: 'Edukasi Umbi',
+      desc: 'Pelajari keunggulan umbi lokal, manfaat bagi lingkungan, serta cara mengolah yang aman bebas gatal dan racun.',
+      icon: BookOpen,
+      bgBadge: 'bg-brand-green text-white',
+      borderClass: 'border-brand-green/30 hover:border-brand-green',
+      btnText: 'Buka Edukasi Umbi'
+    },
+    {
+      id: 'info-gizi',
+      title: 'Informasi Gizi',
+      desc: 'Mengetahui kandungan nutrisi, serat, dan vitamin dalam berbagai jenis umbi dibandingkan nasi putih.',
+      icon: HeartPulse,
+      bgBadge: 'bg-emerald-700 text-white',
+      borderClass: 'border-emerald-600/30 hover:border-emerald-700',
+      btnText: 'Lihat Informasi Gizi'
+    },
+    {
+      id: 'kalkulator',
+      title: 'Kalkulator Gizi',
+      desc: 'Kalkulator praktis untuk membantu Bunda menentukan takaran porsi pengganti nasi serta paduan protein hewani yang tepat.',
+      icon: Calculator,
+      bgBadge: 'bg-brand-orange text-white',
+      borderClass: 'border-brand-orange/30 hover:border-brand-orange',
+      btnText: 'Hitung Takaran Porsi'
+    },
+    {
+      id: 'resep',
+      title: 'Katalog Resep',
+      desc: 'Cari resep lezat berdasarkan bahan yang ada di kulkas Bunda, jenis umbi, atau kelompok usia si kecil.',
+      icon: ChefHat,
+      bgBadge: 'bg-brand-purple text-white',
+      borderClass: 'border-brand-purple/30 hover:border-brand-purple',
+      btnText: 'Cari Resep Masakan'
+    }
+  ];
+
+  const localTubersSummary = [
+    {
+      slug: 'ubi-jalar' as const,
+      name: 'Ubi Jalar',
+      borderColor: 'border-brand-orange/40',
+      badgeBg: 'bg-brand-orange text-white',
+      points: [
+        'Manis alami, mudah dilumatkan',
+        'Yang berdaging oranye kaya beta-karoten (jadi vitamin A)',
+        'Cocok untuk bubur, kukus, dan bola ubi'
+      ]
+    },
+    {
+      slug: 'singkong' as const,
+      name: 'Singkong',
+      borderColor: 'border-brand-green/40',
+      badgeBg: 'bg-brand-green text-white',
+      points: [
+        'Sumber tenaga yang mengenyangkan',
+        'Kupas bersih, lalu masak sampai matang, jangan dimakan mentah',
+        'Cocok untuk getuk, kroket, schotel kukus, dan lumpia isi'
+      ]
+    },
+    {
+      slug: 'talas' as const,
+      name: 'Talas',
+      borderColor: 'border-brand-purple/40',
+      badgeBg: 'bg-brand-purple text-white',
+      points: [
+        'Tekstur pulen mengandung serat alami',
+        'Getahnya bikin gatal: pakai sarung tangan saat mengupas, masak sampai benar-benar matang',
+        'Cocok untuk bubur tim, kukus, dan perkedel'
+      ]
+    }
+  ];
+
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-12 pb-12 animate-fade-in">
       
-      {/* 1. HERO SECTION */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-dark via-stone-900 to-brand-green text-white rounded-3xl p-6 sm:p-12 shadow-xl border border-stone-800">
-        <div className="relative z-10 max-w-3xl space-y-6">
-          
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-amber-300 border border-white/15">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Kemitraan Posyandu Terpadu & Kemandirian Pangan Lokal</span>
+      {/* 1. HERO BANNER SEDERHANA & HANGAT */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-green via-emerald-800 to-stone-900 text-white rounded-3xl p-6 sm:p-12 shadow-lg">
+        <div className="relative z-10 max-w-3xl space-y-5">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/15 backdrop-blur-md rounded-full text-xs sm:text-sm font-bold text-amber-200 border border-white/20">
+            <ShieldCheck className="w-4 h-4 text-amber-300 shrink-0" />
+            <span>Panduan Gizi Keluarga & Posyandu</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight sm:leading-tight">
-            Nutrisi Tepat, Balita Sehat & Bebas Stunting dengan <span className="text-brand-orange drop-shadow-sm">Umbi Lokal</span>.
+          <h1 className="text-2xl sm:text-5xl font-black tracking-tight leading-tight">
+            Nutrisi Tepat, Balita Sehat & Bebas Stunting dengan <span className="text-amber-300">Umbi Lokal</span>
           </h1>
 
-          <p className="text-sm sm:text-base text-stone-300 leading-relaxed font-normal">
-            Sistem informasi edukasi gizi dan katalog resep olahan <strong>Singkong, Ubi Jalar, dan Talas</strong> sebagai alternatif pendamping beras terstandarisasi. Terintegrasi dengan program PMT Posyandu dan protokol wajib protein hewani.
+          <p className="text-sm sm:text-lg text-stone-100 leading-relaxed font-normal">
+            <strong>Kumbi</strong> adalah website edukasi gizi dan katalog resep olahan <strong>Singkong, Ubi Jalar, dan Talas</strong> sebagai alternatif pendamping beras. Dilengkapi panduan takaran porsi dan paduan wajib protein hewani untuk si kecil.
           </p>
 
-          {/* Quick Box Code Resolver Box */}
-          <div className="bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/20 max-w-xl shadow-lg">
-            <label className="text-xs font-bold text-stone-200 block mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-brand-orange" />
-                Akses Kode Kotak PMT Posyandu:
-              </span>
-              <span className="text-[10px] text-amber-300 font-mono">Verifikasi Otomatis</span>
-            </label>
-            <form onSubmit={handleQuickSubmit} className="flex gap-2">
-              <input
-                type="text"
-                value={quickCodeInput}
-                onChange={e => setQuickCodeInput(e.target.value.toUpperCase())}
-                placeholder="Contoh: UMBI-01 s/d UMBI-06"
-                className="flex-1 px-4 py-2.5 bg-white text-stone-900 rounded-xl text-xs sm:text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-brand-orange uppercase placeholder:normal-case placeholder:font-normal"
-              />
-              <button
-                type="submit"
-                className="btn-press px-5 py-2.5 bg-brand-orange hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 shrink-0"
-              >
-                <span>Buka Resep</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </form>
-            {/* Quick Chips for direct tap */}
-            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-              <span className="text-[10px] text-stone-300">Pilihan Cepat:</span>
-              {['UMBI-01', 'UMBI-02', 'UMBI-03', 'UMBI-04'].map(code => (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => handleChipClick(code)}
-                  className="px-2.5 py-0.5 rounded-md bg-white/15 hover:bg-white/25 text-[10px] font-mono font-bold text-white border border-white/20 transition-all"
-                >
-                  {code}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Hero CTA Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              onClick={() => {
+                sound.playClick();
+                onNavigate('resep');
+              }}
+              className="btn-press px-6 py-3.5 bg-brand-orange hover:bg-orange-600 text-white rounded-2xl text-sm font-bold transition-all shadow-md flex items-center gap-2"
+            >
+              <ChefHat className="w-5 h-5" />
+              <span>Lihat Katalog Resep</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
             <button
               onClick={() => {
                 sound.playClick();
                 onNavigate('kalkulator');
               }}
-              className="btn-press px-5 py-3 bg-brand-green hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg flex items-center gap-2"
+              className="btn-press px-6 py-3.5 bg-white text-brand-green hover:bg-stone-100 rounded-2xl text-sm font-bold transition-all shadow-md flex items-center gap-2"
             >
-              <span>Kalkulator Konversi Porsi Nasi ke Umbi</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => {
-                sound.playClick();
-                onNavigate('edukasi');
-              }}
-              className="btn-press px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-bold transition-all border border-white/20"
-            >
-              Komparasi Gizi 3 Umbi vs Beras
+              <Calculator className="w-5 h-5" />
+              <span>Hitung Takaran Pengganti Nasi</span>
             </button>
           </div>
-
-          {/* Authority Highlights Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/15 text-xs text-stone-300">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>3 Komoditas Umbi Terverifikasi</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Wajib Paduan Protein Hewani</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Scale className="w-4 h-4 text-sky-400 shrink-0" />
-              <span>Standar Porsi Gizi Seimbang</span>
-            </div>
-          </div>
-
         </div>
-
-        {/* Decorative Background Shapes */}
-        <div className="absolute -bottom-16 -right-16 w-80 h-80 rounded-full bg-brand-green/20 blur-3xl pointer-events-none" />
-        <div className="absolute top-0 right-1/4 w-60 h-60 rounded-full bg-brand-orange/15 blur-2xl pointer-events-none" />
       </section>
 
-      {/* 2. THREE TUBER EXPLORER CARDS WITH REAL ASSET ART */}
-      <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      {/* 2. EMPAT FITUR UTAMA KUMBI (SESUAI POSTER) */}
+      <section className="space-y-5">
+        <div className="text-center max-w-2xl mx-auto space-y-1">
+          <span className="text-xs font-extrabold uppercase tracking-wider text-brand-orange">
+            Menu Utama Kumbi
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-black text-stone-900">
+            Apa Saja yang Bisa Bunda Lakukan di Sini?
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-600">
+            Ketuk salah satu menu di bawah ini sesuai kebutuhan Bunda:
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {mainFeatures.map(feat => {
+            const IconComponent = feat.icon;
+            return (
+              <div
+                key={feat.id}
+                onClick={() => {
+                  sound.playClick();
+                  onNavigate(feat.id);
+                }}
+                className={`card-lift bg-white rounded-3xl border-2 ${feat.borderClass} p-6 shadow-sm flex flex-col justify-between cursor-pointer transition-all`}
+              >
+                <div className="space-y-3">
+                  <div className={`w-12 h-12 rounded-2xl ${feat.bgBadge} flex items-center justify-center shadow-sm`}>
+                    <IconComponent className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-black text-stone-900">{feat.title}</h3>
+                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                    {feat.desc}
+                  </p>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-xs font-extrabold text-brand-green">
+                  <span>{feat.btnText}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. KENALI UMBI LOKAL KITA (SESUAI POSTER) */}
+      <section className="bg-white rounded-3xl border border-brand-border p-6 sm:p-9 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-border pb-4">
           <div>
-            <span className="text-xs font-bold text-brand-green uppercase tracking-wider block">
-              Sumber Karbohidrat Unggulan Nusantara
+            <span className="inline-block text-xs font-extrabold uppercase tracking-wider text-white bg-brand-green px-3 py-1 rounded-full mb-1.5">
+              Kenali Umbi Lokal Kita
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-              Eksplorasi 3 Umbi Lokal Pendamping Beras
+            <h2 className="text-2xl sm:text-3xl font-black text-stone-900">
+              3 Sumber Karbohidrat Sehat Pendamping Nasi
             </h2>
           </div>
+
           <button
             onClick={() => {
               sound.playClick();
               onNavigate('edukasi');
             }}
-            className="text-xs font-bold text-brand-green hover:text-emerald-800 flex items-center gap-1 underline"
+            className="text-xs sm:text-sm font-bold text-brand-green hover:underline flex items-center gap-1.5 self-start sm:self-auto"
           >
-            Lihat Tabel Perbandingan Lengkap
+            <span>Pelajari Cara Mengolah Lengkap</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Card Singkong */}
-          <div className="card-lift bg-white rounded-3xl border-2 border-brand-green/30 overflow-hidden shadow-sm flex flex-col justify-between">
-            <div>
-              {/* Visual Image Header */}
-              <div className="relative h-44 overflow-hidden bg-stone-100">
-                <img 
-                  src={getTuberImage('singkong')} 
-                  alt="Singkong dan Tepung Mocaf" 
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                  <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
-                    Energi Padat
-                  </span>
+          {localTubersSummary.map(tuber => (
+            <div
+              key={tuber.slug}
+              className={`rounded-3xl border-2 ${tuber.borderColor} bg-brand-cream/40 p-5 flex flex-col justify-between space-y-4`}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <img
+                    src={getTuberImage(tuber.slug)}
+                    alt={tuber.name}
+                    className="w-20 h-20 rounded-2xl object-cover bg-white border-2 border-white shadow-md shrink-0"
+                  />
+                  <div>
+                    <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full mb-1 ${tuber.badgeBg}`}>
+                      Umbi Lokal
+                    </span>
+                    <h3 className="text-xl font-black text-stone-900">{tuber.name}</h3>
+                  </div>
                 </div>
-                <div className="absolute bottom-2.5 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
-                  162,5 kkal/100g
+
+                <div className="space-y-2.5 pt-1">
+                  {tuber.points.map((pt, i) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-stone-800 leading-relaxed font-medium">
+                      <CheckCircle2 className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" />
+                      <span>{pt}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="p-5 pb-2">
-                <h3 className="text-xl font-black text-stone-900">Singkong & Mocaf</h3>
-                <p className="text-xs italic text-stone-500 mb-2">Manihot esculenta</p>
-                <p className="text-xs text-stone-600 leading-relaxed">
-                  Sumber energi padat, fleksibel diolah jadi schotel gurih atau tepung Mocaf (fermentasi kaya pati resisten penurun gula darah & bebas gluten).
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 pt-0 space-y-2 mt-3">
-              <div className="text-[11px] font-semibold text-amber-950 bg-amber-50/90 px-3 py-1.5 rounded-xl border border-amber-200/70 flex items-start gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span>Protokol Aman: Pilih kulit ari merah muda, rendam air bersih mengalir.</span>
-              </div>
               <button
                 onClick={() => {
                   sound.playClick();
-                  onNavigate('edukasi');
+                  if (onNavigateToRecipesWithFilter) {
+                    onNavigateToRecipesWithFilter(tuber.slug);
+                  } else {
+                    onNavigate('resep');
+                  }
                 }}
-                className="btn-press w-full py-2.5 bg-emerald-50 hover:bg-brand-green hover:text-white text-brand-green text-xs font-bold rounded-xl transition-all shadow-sm"
+                className="w-full py-2.5 bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 btn-press"
               >
-                Cek Profil Gizi Singkong
+                <ChefHat className="w-4 h-4 text-brand-orange" />
+                <span>Lihat Resep {tuber.name}</span>
               </button>
             </div>
-          </div>
-
-          {/* Card Ubi Jalar */}
-          <div className="card-lift bg-white rounded-3xl border-2 border-brand-orange/30 overflow-hidden shadow-sm flex flex-col justify-between">
-            <div>
-              {/* Visual Image Header */}
-              <div className="relative h-44 overflow-hidden bg-stone-100">
-                <img 
-                  src={getTuberImage('ubi-jalar')} 
-                  alt="Ubi Jalar Oranye dan Ungu" 
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                  <span className="bg-orange-600/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
-                    IG Rendah (44)
-                  </span>
-                </div>
-                <div className="absolute bottom-2.5 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
-                  86 kkal/100g
-                </div>
-              </div>
-
-              <div className="p-5 pb-2">
-                <h3 className="text-xl font-black text-stone-900">Ubi Jalar Oranye & Ungu</h3>
-                <p className="text-xs italic text-stone-500 mb-2">Ipomoea batatas</p>
-                <p className="text-xs text-stone-600 leading-relaxed">
-                  Super kaya Beta-Karoten (provitamin A) dan antosianin alami. Manis legit tanpa gula pasir tambahan, menjaga gula darah anak kenyang stabil.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 pt-0 space-y-2 mt-3">
-              <div className="text-[11px] font-semibold text-amber-950 bg-amber-50/90 px-3 py-1.5 rounded-xl border border-amber-200/70 flex items-start gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span>Protokol Aman: Kukus atau rebus; hindari goreng minyak berlebih.</span>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  onNavigate('edukasi');
-                }}
-                className="btn-press w-full py-2.5 bg-orange-50 hover:bg-brand-orange hover:text-white text-brand-orange text-xs font-bold rounded-xl transition-all shadow-sm"
-              >
-                Cek Profil Gizi Ubi Jalar
-              </button>
-            </div>
-          </div>
-
-          {/* Card Talas Bogor */}
-          <div className="card-lift bg-white rounded-3xl border-2 border-brand-purple/30 overflow-hidden shadow-sm flex flex-col justify-between">
-            <div>
-              {/* Visual Image Header */}
-              <div className="relative h-44 overflow-hidden bg-stone-100">
-                <img 
-                  src={getTuberImage('talas')} 
-                  alt="Talas Bogor" 
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                  <span className="bg-purple-700/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md">
-                    Kalium 536mg
-                  </span>
-                </div>
-                <div className="absolute bottom-2.5 right-3 bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
-                  145 kkal/100g
-                </div>
-              </div>
-
-              <div className="p-5 pb-2">
-                <h3 className="text-xl font-black text-stone-900">Talas Bogor</h3>
-                <p className="text-xs italic text-stone-500 mb-2">Colocasia esculenta</p>
-                <p className="text-xs text-stone-600 leading-relaxed">
-                  Kandungan kalium tertinggi untuk kesehatan fungsi jantung dan otot. Butiran patinya super halus, sangat nyaman untuk saluran cerna bayi/balita.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 pt-0 space-y-2 mt-3">
-              <div className="text-[11px] font-semibold text-amber-950 bg-amber-50/90 px-3 py-1.5 rounded-xl border border-amber-200/70 flex items-start gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                <span>Protokol Anti-Oksalat: Kupas kering, rendam larutan garam hangat 20 menit.</span>
-              </div>
-              <button
-                onClick={() => {
-                  sound.playClick();
-                  onNavigate('edukasi');
-                }}
-                className="btn-press w-full py-2.5 bg-purple-50 hover:bg-brand-purple hover:text-white text-brand-purple text-xs font-bold rounded-xl transition-all shadow-sm"
-              >
-                Cek Profil Gizi Talas
-              </button>
-            </div>
-          </div>
-
+          ))}
         </div>
       </section>
 
-      {/* 3. RAPID RICE TO TUBER CALCULATOR WIDGET ON HOME */}
-      <section>
-        <RiceToTuberCalc 
-          onSelectRecipeByTuber={(tuber) => {
-            setSelectedTuberFilter(tuber);
-            const el = document.getElementById('katalog-resep-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-        />
-      </section>
-
-      {/* 4. FEATURED PMT & MPASI RECIPES CATALOG */}
-      <section id="katalog-resep-section" className="space-y-6">
+      {/* 4. RESEP PILIHAN UNTUK SI KECIL */}
+      <section className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <span className="text-xs font-bold text-brand-orange uppercase tracking-wider block">
-              Inspirasi Dapur Sehat
+            <span className="text-xs font-extrabold text-brand-orange uppercase tracking-wider block">
+              Inspirasi Masakan Harian
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-              Katalog Resep MPASI & Kudapan PMT Posyandu
+            <h2 className="text-2xl sm:text-3xl font-black text-stone-900">
+              Resep Olahan Umbi & Protein Hewani
             </h2>
             <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-              Tervalidasi gizi, wajib paduan protein hewani, dan dilengkapi panduan tekstur sesuai usia.
+              Ketuk salah satu resep di bawah ini untuk melihat takaran bahan dan cara memasaknya:
             </p>
           </div>
 
-          {/* Filter Tabs by Tuber */}
-          <div className="flex flex-wrap gap-1.5 bg-brand-cream p-1 rounded-2xl border border-brand-border">
+          {/* Filter Cepat per Umbi */}
+          <div className="flex flex-wrap gap-1.5 bg-white p-1.5 rounded-2xl border border-brand-border shadow-xs">
             {[
-              { id: 'all', label: 'Semua Umbi' },
-              { id: 'talas', label: 'Talas' },
+              { id: 'all', label: 'Semua' },
               { id: 'ubi-jalar', label: 'Ubi Jalar' },
-              { id: 'singkong', label: 'Singkong / Mocaf' }
+              { id: 'singkong', label: 'Singkong' },
+              { id: 'talas', label: 'Talas' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -375,7 +307,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 className={`btn-press px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   selectedTuberFilter === tab.id
                     ? 'bg-brand-green text-white shadow-sm'
-                    : 'text-stone-700 hover:bg-brand-subtle'
+                    : 'text-stone-700 hover:bg-stone-100'
                 }`}
               >
                 {tab.label}
@@ -384,7 +316,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        {/* Recipes Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {featuredRecipes.map(recipe => (
             <RecipeCard
@@ -394,32 +325,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
             />
           ))}
         </div>
-      </section>
-
-      {/* 5. BANNER MITOS FAKTA & KUIS ANTREAN */}
-      <section className="bg-gradient-to-r from-amber-50 via-orange-50 to-emerald-50 rounded-3xl border border-brand-orange/30 p-6 sm:p-10 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 max-w-xl text-center md:text-left">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-brand-orange bg-white px-3 py-1 rounded-full border border-brand-orange/20">
-            Modul Edukasi Partisipatif Meja 4 Posyandu
-          </span>
-          <h3 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
-            Uji Pemahaman: Mitos vs Fakta Ilmiah Gizi Umbi
-          </h3>
-          <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-            Klarifikasi miskonsepsi seputar indeks glikemik, teknik aman kalsium oksalat, dan kewajiban pendamping protein hewani balita. Raih verifikasi pemahaman digital <strong>"Bunda Pelopor Pangan Lokal"</strong> dalam kuis interaktif 3 menit.
-          </p>
-        </div>
-
-        <button
-          onClick={() => {
-            sound.playClick();
-            onNavigate('kuis');
-          }}
-          className="btn-press px-6 py-3.5 bg-brand-orange hover:bg-orange-700 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-md flex items-center gap-2 shrink-0"
-        >
-          <HelpCircle className="w-5 h-5" />
-          <span>Buka Kartu Mitos & Mulai Kuis</span>
-        </button>
       </section>
 
     </div>
